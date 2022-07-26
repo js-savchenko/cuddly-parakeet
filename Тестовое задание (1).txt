@@ -1,0 +1,90 @@
+import json
+from datetime import datetime
+
+
+def write_report(user_id, report):
+    """Написать отчет в файл.
+
+    :param user_id: Идентификатор пользователя.
+    :param report: Отчет по заданиям пользователя.
+    """
+    date = datetime.now().strftime("%Y-%m-%dT%H-%M")
+    filename = f"{user_id}_{date}.txt"
+
+    with open(filename, "w") as f:
+        f.write(report)
+
+
+def open_file(filename):
+    """Открыть и расшифровать json-файл.
+
+    :param filename: Имя файла.
+    :return: Прочитанный файл.
+    """
+    with open(filename) as f:
+        return json.load(f)
+
+
+def group_by_users(tasks):
+    """Сгруппировать задания по пользователям.
+
+    :param tasks: Задания.
+    :return: Сгруппированные по пользователям задания.
+    """
+    grouped_tasks = {}
+    for task in tasks:
+        try:
+            user_id = task["userId"]
+        except KeyError:
+            print("Error", task)
+            continue
+
+        if not grouped_tasks.get(user_id):
+            grouped_tasks[user_id] = {"false": [], "true": []}
+
+        if task["completed"] is True:
+            grouped_tasks[user_id]["true"].append(task["title"])
+        else:
+            grouped_tasks[user_id]["false"].append(task["title"])
+
+    return grouped_tasks
+
+
+def format_tasks(tasks):
+    """Отформатировать задания.
+
+    :param tasks: Заголовки заданий.
+    :return: Форматированные заголовки.
+    """
+    formatted_titles = ""
+
+    for title in tasks:
+        if len(title) > 50:
+            formatted_titles += f"{title[0:50]}...\n"
+        else:
+            formatted_titles += f"{title}\n"
+
+    return formatted_titles[:-1]
+
+
+def build_report(report):
+    """Собрать отчеты и записать в файлы.
+
+    :param report: Отчеты.
+    """
+    for user_id, tasks in report.items():
+        text = ""
+        text += "# Сотрудник №" + str(user_id) + "\n"
+        text += datetime.now().strftime("%d.%m.%Y %H:%M") + "\n"
+        text += "\n## Завершенные задачи:\n"
+        text += format_tasks(tasks["true"]) + "\n"
+        text += "\n## Оставшиеся задачи:\n"
+        text += format_tasks(tasks["false"])
+
+        write_report(user_id, text)
+
+
+if __name__ == "__main__":
+    text = open_file("todos.json")
+    report = group_by_users(text)
+    build_report(report)
